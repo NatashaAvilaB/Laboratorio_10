@@ -15,6 +15,7 @@ import mx.tec.avisos.domain.AvisoValidator
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
+import mx.tec.avisos.data.imagenes.FotosTemporales
 
 /**
  * `etapa` es lo que se está haciendo, o null si no se está haciendo nada.
@@ -37,7 +38,8 @@ data class PublicarUiState(
 @HiltViewModel
 class PublicarViewModel @Inject constructor(
     private val avisos: AvisosRepository,
-    private val imagenes: ImagenesRepository
+    private val imagenes: ImagenesRepository,
+    private val fotos: FotosTemporales
 ) : ViewModel() {
 
     var uiState by mutableStateOf(PublicarUiState())
@@ -60,6 +62,8 @@ class PublicarViewModel @Inject constructor(
     }
 
     /** `alTerminar` se llama solo si el servidor aceptó el aviso. Un error se queda a la vista. */
+    /** Dónde va a escribir la cámara. Lo crea quien sabe de archivos, no la pantalla. */
+    fun nuevaFoto(): Uri = fotos.nueva()
     fun publicar(alTerminar: () -> Unit) {
         if (!uiState.puedePublicar) return
         viewModelScope.launch {
@@ -74,6 +78,7 @@ class PublicarViewModel @Inject constructor(
                 }
                 uiState = uiState.copy(etapa = "Publicando…", error = null)
                 avisos.publicar(uiState.titulo, uiState.cuerpo, clave)
+                fotos.limpiar()
                 uiState = uiState.copy(etapa = null)
                 alTerminar()
             } catch (e: ImagenIlegible) {
